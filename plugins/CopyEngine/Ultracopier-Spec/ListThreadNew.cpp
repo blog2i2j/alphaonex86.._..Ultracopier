@@ -9,6 +9,10 @@
 bool ListThread::newCopy(const std::vector<std::string> &sources,const std::string &destination)
 {
     ULTRACOPIER_DEBUGCONSOLE(Ultracopier::DebugLevel_Notice,"sources: "+stringimplode(sources,";")+", destination: "+destination);
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    if(hasRemoteUrl(sources,destination))
+        return newCopyKio(sources,destination);
+    #endif
     ScanFileOrFolder * scanFileOrFolderThread=newScanThread(Ultracopier::Copy);
     if(scanFileOrFolderThread==NULL)
     {
@@ -60,6 +64,10 @@ bool ListThread::newCopy(const std::vector<std::string> &sources,const std::stri
 bool ListThread::newMove(const std::vector<std::string> &sources,const std::string &destination)
 {
     ULTRACOPIER_DEBUGCONSOLE(Ultracopier::DebugLevel_Notice,"start");
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    if(hasRemoteUrl(sources,destination))
+        return newMoveKio(sources,destination);
+    #endif
 
     #ifdef ULTRACOPIER_PLUGIN_DEBUG
     {

@@ -54,10 +54,10 @@ CopyEngineFactory::CopyEngineFactory() :
     connect(ui->doRightTransfer,            &QCheckBox::toggled,                                            this,&CopyEngineFactory::setDoRightTransfer);
     connect(ui->keepDate,                   &QCheckBox::toggled,                                            this,&CopyEngineFactory::setKeepDate);
     connect(ui->native_copy,                   &QCheckBox::toggled,                                            this,&CopyEngineFactory::setNativeCopy);
-    #ifndef Q_OS_WIN32
+    #if !defined(Q_OS_WIN32) && !defined(Q_OS_LINUX)
     ui->native_copy->setEnabled(false);
     ui->label_native_copy->setEnabled(false);
-    ui->native_copy->setToolTip(tr("Supported only on Windows"));
+    ui->native_copy->setToolTip(tr("Supported only on Windows and Linux"));
     #endif
     connect(ui->os_spec_flags,                   &QCheckBox::toggled,                                            this,&CopyEngineFactory::setOsSpecFlags);
     connect(ui->inodeThreads,               static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),	this,&CopyEngineFactory::on_inodeThreads_editingFinished);
@@ -273,6 +273,16 @@ std::vector<std::string> CopyEngineFactory::supportedProtocolsForTheSource() con
 {
     std::vector<std::string> l;
     l.push_back("file");
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    l.push_back("ftp");
+    l.push_back("sftp");
+    l.push_back("smb");
+    l.push_back("fish");
+    l.push_back("nfs");
+    l.push_back("mtp");
+    l.push_back("webdav");
+    l.push_back("webdavs");
+    #endif
     return l;
 }
 
@@ -280,6 +290,16 @@ std::vector<std::string> CopyEngineFactory::supportedProtocolsForTheDestination(
 {
     std::vector<std::string> l;
     l.push_back("file");
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    l.push_back("ftp");
+    l.push_back("sftp");
+    l.push_back("smb");
+    l.push_back("fish");
+    l.push_back("nfs");
+    l.push_back("mtp");
+    l.push_back("webdav");
+    l.push_back("webdavs");
+    #endif
     return l;
 }
 
@@ -316,10 +336,10 @@ void CopyEngineFactory::resetOptions()
     ui->keepDate->setChecked(stringtobool(options->getOptionValue("keepDate")));
     ui->os_spec_flags->setChecked(stringtobool(options->getOptionValue("os_spec_flags")));
     ui->native_copy->setChecked(stringtobool(options->getOptionValue("native_copy")));
-    #ifndef Q_OS_WIN32
+    #if !defined(Q_OS_WIN32) && !defined(Q_OS_LINUX)
     ui->native_copy->setEnabled(false);
     ui->label_native_copy->setEnabled(false);
-    ui->native_copy->setToolTip(tr("Supported only on Windows"));
+    ui->native_copy->setToolTip(tr("Supported only on Windows and Linux"));
     #endif
     ui->autoStart->setChecked(stringtobool(options->getOptionValue("autoStart")));
     #ifdef ULTRACOPIER_PLUGIN_RSYNC

@@ -894,10 +894,10 @@ void CopyEngine::setNativeCopy(const bool native_copy)
     this->native_copy=native_copy;
     if(uiIsInstalled)
     {
-        #ifndef Q_OS_WIN32
+        #if !defined(Q_OS_WIN32) && !defined(Q_OS_LINUX)
         ui->native_copy->setEnabled(false);
         ui->label_native_copy->setEnabled(false);
-        ui->native_copy->setToolTip(tr("Supported only on Windows"));
+        ui->native_copy->setToolTip(tr("Supported only on Windows and Linux"));
         #endif
     }
     listThread->setNativeCopy(native_copy);

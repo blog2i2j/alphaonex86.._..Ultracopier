@@ -447,6 +447,10 @@ void ListThread::realByteTransfered()
         totalRealByteTransfered+=thread->realByteTransfered();
         index++;
     }
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    for(const auto &entry : kioJobs)
+        totalRealByteTransfered+=entry.processedBytes;
+    #endif
     emit send_realBytesTransfered(totalRealByteTransfered);
 }
 
@@ -491,6 +495,10 @@ void ListThread::updateTheStatus()
     sendActionDone();
     bool updateTheStatus_listing=scanFileOrFolderThreadsPool.size()>0;
     bool updateTheStatus_copying=actionToDoListTransfer.size()>0 || actionToDoListInode.size()>0 || actionToDoListInode_afterTheTransfer.size()>0;
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    if(!kioJobs.empty())
+        updateTheStatus_copying=true;
+    #endif
     Ultracopier::EngineActionInProgress updateTheStatus_action_in_progress;
     if(updateTheStatus_copying && updateTheStatus_listing)
         updateTheStatus_action_in_progress=Ultracopier::CopyingAndListing;

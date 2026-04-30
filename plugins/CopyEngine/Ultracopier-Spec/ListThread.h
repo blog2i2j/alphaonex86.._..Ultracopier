@@ -23,6 +23,11 @@
 #include "MkPath.h"
 #include "Environment.h"
 #include "DriveManagement.h"
+#ifdef ULTRACOPIER_PLUGIN_KIO
+#include <QUrl>
+#include <KIO/CopyJob>
+#include <KJob>
+#endif
 #ifdef ULTRACOPIER_PLUGIN_IO_URING
 #include "uring/TransferThreadUring.h"
 typedef TransferThreadUring TransferThreadImpl;
@@ -73,6 +78,10 @@ public:
     {
         uint64_t id;
         uint64_t size;///< Used to set: used in case of transfer or remainingInode for drop folder
+        #ifdef ULTRACOPIER_PLUGIN_KIO
+        QUrl sourceUrl;///< KDE KIO URL for remote sources
+        QUrl destinationUrl;///< KDE KIO URL for remote destinations
+        #endif
         #ifdef WIDESTRING
         std::wstring source;///< Used to set: source for transfer, folder to create, folder to drop
         std::wstring destination;
@@ -91,6 +100,10 @@ public:
         ActionType type;///< \see ActionType
         uint64_t id;
         int64_t size;///< Used to set: used in case of transfer or remainingInode for drop folder
+        #ifdef ULTRACOPIER_PLUGIN_KIO
+        QUrl sourceUrl;///< KDE KIO URL for remote sources
+        QUrl destinationUrl;///< KDE KIO URL for remote destinations
+        #endif
         #ifdef WIDESTRING
         std::wstring source;///< Keep to copy the right/date, to remove (for move)
         std::wstring destination;///< Used to set: folder to create, folder to drop
@@ -238,6 +251,18 @@ private:
     DriveManagement     driveManagement;
 
     bool                stopIt;
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    struct KioJobEntry {
+        KIO::CopyJob *job;
+        uint64_t totalBytes;
+        uint64_t processedBytes;
+    };
+    std::vector<KioJobEntry> kioJobs;
+    bool newCopyKio(const std::vector<std::string> &sources, const std::string &destination);
+    bool newMoveKio(const std::vector<std::string> &sources, const std::string &destination);
+    bool startKioJob(const std::vector<std::string> &sources, const std::string &destination, Ultracopier::CopyMode mode);
+    static bool hasRemoteUrl(const std::vector<std::string> &sources, const std::string &destination);
+    #endif
     std::vector<ScanFileOrFolder *> scanFileOrFolderThreadsPool;
     int                 numberOfTransferIntoToDoList;
     std::vector<TransferThreadImpl *>		transferThreadList;
@@ -382,6 +407,11 @@ private slots:
     void syncTransferList_internal();
 
     void checkIfReadyToCancel();
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    void kioJobResult(KJob *job);
+    void kioJobProcessedAmount(KJob *job, KJob::Unit unit, qulonglong amount);
+    void kioJobTotalAmount(KJob *job, KJob::Unit unit, qulonglong amount);
+    #endif
 signals:
     //send information about the copy
     void actionInProgess(const Ultracopier::EngineActionInProgress &) const;	//should update interface information on this event

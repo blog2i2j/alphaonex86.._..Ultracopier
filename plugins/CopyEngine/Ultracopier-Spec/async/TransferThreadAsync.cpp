@@ -385,7 +385,9 @@ DWORD CALLBACK progressRoutine(
     static_cast<TransferThreadAsync *>(lpData)->setProgression(TotalBytesTransferred.QuadPart,TotalFileSize.QuadPart);
     return PROGRESS_CONTINUE;
 }
+#endif
 
+#if defined(Q_OS_WIN32) || defined(Q_OS_LINUX)
 void TransferThreadAsync::setProgression(const uint64_t &pos, const uint64_t &size)
 {
     if(transfer_stat==TransferStat_Transfer)
@@ -690,6 +692,107 @@ void TransferThreadAsync::ifCanStartTransfer()
                     writeError=true;
                     emit errorOnFile(destination,strError);
                 }
+            }
+            else
+            #elif defined(Q_OS_LINUX)
+            if(native_copy)
+            {
+                ULTRACOPIER_DEBUGCONSOLE(Ultracopier::DebugLevel_Notice,internalStringTostring(source)+" to "+internalStringTostring(destination)+": native_copy enabled (copy_file_range)");
+                const std::string srcPath=TransferThread::internalStringTostring(source);
+                const std::string dstPath=TransferThread::internalStringTostring(destination);
+                int src_fd=::open(srcPath.c_str(),O_RDONLY);
+                if(src_fd<0)
+                {
+                    const int terr=errno;
+                    const std::string &strError=strerror(terr);
+                    ULTRACOPIER_DEBUGCONSOLE(Ultracopier::DebugLevel_Warning,"["+std::to_string(id)+"] copy_file_range open(source) failed "+srcPath+": "+strError+"("+std::to_string(terr)+")");
+                    readError=true;
+                    writeError=false;
+                    emit errorOnFile(source,strError);
+                    return;
+                }
+                struct stat src_stat;
+                if(fstat(src_fd,&src_stat)<0)
+                {
+                    const int terr=errno;
+                    const std::string &strError=strerror(terr);
+                    ::close(src_fd);
+                    readError=true;
+                    writeError=false;
+                    emit errorOnFile(source,strError);
+                    return;
+                }
+                int dst_fd=::open(dstPath.c_str(),O_WRONLY|O_CREAT|O_TRUNC,0755);
+                if(dst_fd<0)
+                {
+                    const int terr=errno;
+                    const std::string &strError=strerror(terr);
+                    ULTRACOPIER_DEBUGCONSOLE(Ultracopier::DebugLevel_Warning,"["+std::to_string(id)+"] copy_file_range open(destination) failed "+dstPath+": "+strError+"("+std::to_string(terr)+")");
+                    ::close(src_fd);
+                    readError=false;
+                    writeError=true;
+                    emit errorOnFile(destination,strError);
+                    return;
+                }
+                successFull=true;
+                const uint64_t total=(uint64_t)src_stat.st_size;
+                uint64_t copied=0;
+                transferProgression=0;
+                while(copied<total)
+                {
+                    if(stopIt || needSkip)
+                    {
+                        ::close(src_fd);
+                        ::close(dst_fd);
+                        if(stopIt && needRemove)
+                            unlink(dstPath.c_str());
+                        resetExtraVariable();
+                        return;
+                    }
+                    size_t to_copy=(size_t)(total-copied);
+                    //cap per-call so we report progress regularly
+                    if(to_copy>(size_t)(1<<20))
+                        to_copy=(size_t)(1<<20);
+                    ssize_t r=copy_file_range(src_fd,NULL,dst_fd,NULL,to_copy,0);
+                    if(r<0)
+                    {
+                        const int terr=errno;
+                        const std::string &strError=strerror(terr);
+                        ULTRACOPIER_DEBUGCONSOLE(Ultracopier::DebugLevel_Warning,"["+std::to_string(id)+"] copy_file_range failed: "+strError+"("+std::to_string(terr)+")");
+                        ::close(src_fd);
+                        ::close(dst_fd);
+                        successFull=false;
+                        //EXDEV/ENOSYS/EINVAL: cross-device or unsupported -> fall back to read/write path
+                        if(terr==EXDEV || terr==ENOSYS || terr==EINVAL)
+                        {
+                            unlink(dstPath.c_str());
+                            openRead(source,mode);
+                            openWrite(destination,0);
+                            return;
+                        }
+                        readError=false;
+                        writeError=true;
+                        emit errorOnFile(destination,strError);
+                        return;
+                    }
+                    if(r==0)
+                        break;//EOF before total
+                    copied+=(uint64_t)r;
+                    setProgression(copied,total);
+                }
+                ::close(src_fd);
+                if(::close(dst_fd)<0)
+                {
+                    const int terr=errno;
+                    const std::string &strError=strerror(terr);
+                    successFull=false;
+                    readError=false;
+                    writeError=true;
+                    emit errorOnFile(destination,strError);
+                    return;
+                }
+                //ensure final progression is reported (e.g. zero-byte file)
+                transferProgression=total;
             }
             else
             #endif

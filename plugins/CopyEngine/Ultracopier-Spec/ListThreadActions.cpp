@@ -21,6 +21,10 @@ void ListThread::pause()
         transferThreadList.at(index)->pause();
         index++;
     }
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    for(auto &entry : kioJobs)
+        entry.job->suspend();
+    #endif
     emit isInPause(true);
 }
 
@@ -42,6 +46,10 @@ void ListThread::resume()
         transferThreadList.at(index)->resume();
         index++;
     }
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    for(auto &entry : kioJobs)
+        entry.job->resume();
+    #endif
     emit isInPause(false);
 }
 
@@ -117,6 +125,11 @@ void ListThread::cancel()
         index++;
     }
     scanFileOrFolderThreadsPool.clear();
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    for(auto &entry : kioJobs)
+        entry.job->kill();
+    kioJobs.clear();
+    #endif
     #ifdef ULTRACOPIER_PLUGIN_SPEED_SUPPORT
     if(clockForTheCopySpeed!=NULL)
     {

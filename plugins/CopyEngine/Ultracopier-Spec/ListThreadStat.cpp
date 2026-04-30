@@ -132,8 +132,13 @@ void ListThread::sendActionDone()
 //send progression
 void ListThread::sendProgression()
 {
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    if(actionToDoListTransfer.empty() && kioJobs.empty())
+        return;
+    #else
     if(actionToDoListTransfer.empty())
         return;
+    #endif
     oversize=0;
     currentProgression=0;
     int int_for_loop=0;
@@ -189,8 +194,15 @@ void ListThread::sendProgression()
     }
     emit pushFileProgression(progressionList);
     progressionList.clear();
-    const uint64_t result_copied=bytesTransfered+currentProgression;
-    const uint64_t result_total=bytesToTransfer+oversize;
+    uint64_t result_copied=bytesTransfered+currentProgression;
+    uint64_t result_total=bytesToTransfer+oversize;
+    #ifdef ULTRACOPIER_PLUGIN_KIO
+    for(const auto &kioEntry : kioJobs)
+    {
+        result_copied+=kioEntry.processedBytes;
+        result_total+=kioEntry.totalBytes;
+    }
+    #endif
     #ifdef ULTRACOPIER_PLUGIN_DEBUG
     if(debug_pos>result_copied)
     {

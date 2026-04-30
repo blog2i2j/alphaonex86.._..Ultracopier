@@ -171,6 +171,14 @@ target_link_libraries(Ultracopier PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 target_link_libraries(Ultracopier PRIVATE Qt${QT_VERSION_MAJOR}::Network)
 target_link_libraries(Ultracopier PRIVATE Qt${QT_VERSION_MAJOR}::Xml)
 
+option(ULTRACOPIER_PLUGIN_KIO "Enable KDE KIO support for remote file protocols (sftp, smb, ftp, ...)" OFF)
+if(ULTRACOPIER_PLUGIN_KIO)
+    find_package(KF${QT_VERSION_MAJOR} REQUIRED COMPONENTS KIOCore)
+    target_compile_definitions(Ultracopier PRIVATE ULTRACOPIER_PLUGIN_KIO)
+    target_sources(Ultracopier PRIVATE plugins/CopyEngine/Ultracopier-Spec/ListThreadKio.cpp)
+    target_link_libraries(Ultracopier PRIVATE KF${QT_VERSION_MAJOR}::KIOCore)
+endif()
+
 set_target_properties(Ultracopier PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER ultracopier.herman-brule.com
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}

@@ -128,7 +128,7 @@ public slots:
     bool setFiles(const INTERNALTYPEPATH &source, const int64_t &size, const INTERNALTYPEPATH &destination, const Ultracopier::CopyMode &mode);
     /// \brief to set file exists action to do
     void setFileExistsAction(const FileExistsAction &action);
-    #ifdef Q_OS_WIN32
+    #if defined(Q_OS_WIN32) || defined(Q_OS_LINUX)
     void setProgression(const uint64_t &pos,const uint64_t &size);
     #endif
 

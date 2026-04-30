@@ -121,3 +121,9 @@ contains(DEFINES, ULTRACOPIER_PLUGIN_IO_URING) {
                $$PWD/async/WriteThread.cpp \
                $$PWD/async/TransferThreadAsync.cpp
 }
+
+contains(DEFINES, ULTRACOPIER_PLUGIN_KIO) {
+    CONFIG += link_pkgconfig
+    PKGCONFIG += KF6KIOCore
+    SOURCES += $$PWD/ListThreadKio.cpp
+}
